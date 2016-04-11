@@ -13,10 +13,10 @@ namespace Biblioteca
     {
         static void Main(string[] args)
         {
-            AsynchronousClient client = new AsynchronousClient(Dns.GetHostName(), 11000);
+            string msg = Console.ReadLine();
+            AsynchronousClient client = new AsynchronousClient(Dns.GetHostName(), 11000, msg);
             new Thread(new ThreadStart(AsynchronousClient.StartClient)).Start();
-
-            string msg;
+            
             while (true)
             {
                 msg = Console.ReadLine();

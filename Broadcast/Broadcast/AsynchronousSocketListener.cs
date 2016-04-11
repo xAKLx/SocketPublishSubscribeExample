@@ -15,12 +15,15 @@ namespace Broadcast
         // Thread signal.
         public static ManualResetEvent allDone = new ManualResetEvent(false);
 
-        private static HashSet<Socket> subscribers;
+        //private static HashSet<Socket> subscribers;
+
+        private static Dictionary<Socket, String> subscribers;
         
 
         public AsynchronousSocketListener()
         {
-            subscribers = new HashSet<Socket>();
+            //subscribers = new HashSet<Socket>();
+            subscribers = new Dictionary<Socket, string>();
         }
 
 
@@ -101,12 +104,8 @@ namespace Broadcast
                 StateObject state = (StateObject)ar.AsyncState;
                 Socket handler = state.workSocket;
 
-                // Add client handler to set
-                if (handler != null)
-                    subscribers.Add(handler);
-
-                // Read data from the client socket. 
-                int bytesRead = handler.EndReceive(ar);
+                    // Read data from the client socket. 
+                    int bytesRead = handler.EndReceive(ar);
 
                 if (bytesRead > 0)
                 {
@@ -122,20 +121,32 @@ namespace Broadcast
                         // All the data has been read from the 
                         // client. Display it on the console.
                         content = content.Remove(content.Length - 5);
+                        
+                        // Add client handler to set
+                        if (handler != null && !subscribers.ContainsKey(handler))
+                        {
+                            subscribers.Add(handler, content);
+                            Console.WriteLine("New Subscriber: " + content);
+                        }
+                        else
+                        {
+                            string value = "";
+                            //Echo the data back to all subscribers.
+                            foreach (var client in subscribers)
+                                try
+                                {
+                                    value = "";
+                                    subscribers.TryGetValue(handler, out value);
+                                    if (client.Key != handler)
+                                        Send(client.Key, value + ": " + content + "<EOF>");
+                                }
+                                catch (Exception) { }
 
-                        Console.WriteLine("Read {0} bytes from socket. \n Data : {1}", content.Length, content);
-
-                        // Echo the data back to the client.
-                        //Send(handler, content);
-
-                        //Echo the data back to all subscribers.
-                        foreach (var client in subscribers)
-                            try
-                            {
-                                Send(client, content+ "<EOF>");
-                            }
-                            catch (Exception) { }
+                            Console.WriteLine("Read {0} bytes from socket. \n{1}", content.Length, value + ": " + content);
+                            
+                        }
                         state.sb = new StringBuilder();
+
                         // All data received. Get next message. 
                         handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
 
@@ -171,9 +182,6 @@ namespace Broadcast
                 // Complete sending the data to the remote device.
                 int bytesSent = handler.EndSend(ar);
                 Console.WriteLine("Sent {0} bytes to client.", bytesSent);
-
-                //handler.Shutdown(SocketShutdown.Both);
-                //handler.Close();
 
             }
             catch (Exception e)

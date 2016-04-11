@@ -19,6 +19,8 @@ namespace SocketClientExample
 
         private static Socket clientSocket;
 
+        public static String clientName;
+
         // ManualResetEvent instances signal completion.
         private static ManualResetEvent connectDone =
             new ManualResetEvent(false);
@@ -30,11 +32,12 @@ namespace SocketClientExample
         // The response from the remote device.
         private static String response = String.Empty;
 
-        public AsynchronousClient(String hostName, int portNumber)
+        public AsynchronousClient(String hostName, int portNumber, String name)
         {
             host = hostName;
             port = portNumber;
             clientSocket = null;
+            clientName = name;
         }
         
 
@@ -62,29 +65,11 @@ namespace SocketClientExample
                 clientSocket = client;
 
                 // Send test data to the remote device.
-                Send(clientSocket, "This is a test<EOF>");
+                Send(clientSocket, clientName+"<EOF>");
                 sendDone.WaitOne();
 
                 Receive(clientSocket);
                 receiveDone.WaitOne();
-
-                //while (true)
-                //{
-                //    receiveDone.Reset();
-                //    // Receive the response from the remote device.
-                //    Receive(clientSocket);
-                //    receiveDone.WaitOne();
-                //    //Console.WriteLine("Response received : {0}", response);
-
-                //}
-                // Write the response to the console.
-                //Console.WriteLine("Response received : {0}", response);
-
-
-
-                // Release the socket.
-                //client.Shutdown(SocketShutdown.Both);
-                //client.Close();
 
             }
             catch (Exception e)
@@ -103,23 +88,6 @@ namespace SocketClientExample
                 // Send test data to the remote device.
                 Send(clientSocket, data+"<EOF>");
                 sendDone.WaitOne();
-
-
-                //while (true)
-                //{
-                //    // Receive the response from the remote device.
-                //    Receive(clientSocket);
-                //    receiveDone.WaitOne();
-                //    // Write the response to the console.
-                //    Console.WriteLine("Response received : {0}", response);
-                //}
-
-
-
-
-                // Release the socket.
-                //client.Shutdown(SocketShutdown.Both);
-                //client.Close();
 
             }
             catch (Exception e)
@@ -198,10 +166,12 @@ namespace SocketClientExample
                     content = state.sb.ToString();
                     if (content.IndexOf("<EOF>") > -1)
                     {
+                        content = content.Remove(content.Length - 5);
+
                         // All the data has arrived; put it in console.
                         if (state.sb.Length > 1)
                         {
-                            Console.WriteLine("Response received : {0}", state.sb);
+                            Console.WriteLine("{0}", content);
                         }
                         state.sb = new StringBuilder();
                         // Receive more data
